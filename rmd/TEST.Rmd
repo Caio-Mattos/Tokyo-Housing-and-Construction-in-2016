@@ -1,0 +1,230 @@
+---
+title: "Construction in Tokyo in 2016"
+author: "Caio Mattos"
+date: "September 8th 2018"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+## Introduction
+  
+The Greater Tokyo area has been the most populous urban area since the year 2000, at least. As of 2016, it is inhabited by 38 million people according to the [UN](http://www.un.org/en/development/desa/population/publications/pdf/urbanization/the_worlds_cities_in_2016_data_booklet.pdf). Of those, almost 15 million live in the Japanese capital.
+ 
+Housing all those people demands highly effective urban development planning and construction sector. In this matter, the Japanese capital is unique compared to other cities, especially the ones in the Western hemisphere. Thus, being a matter really interesting, which is already very studied in the scientific community.
+
+## Background
+ 
+This is a data analysis of the construction and housing in Tokyo (which is just a fraction of Greater Tokyo) in 2016 section (more specifically the data frame on I took only the data that was in the section called Construction and Housing, and more specifically the data frame on **Number of Buildings and Total Floor Space by District, Building Type, and Structure**), as the most recent available Tokyo Statistical Yearbook is from that year. The data can be accessed at a [statistics webpage](http://www.toukei.metro.tokyo.jp/tnenkan/tn-eindex.htm) from Tokyo Metropolitan Government's official site.
+
+Tokyo shape file can be accessed in an official Japanese government's [webpage](http://nlftp.mlit.go.jp/ksj-e/gml/datalist/KsjTmplt-N03.html). It is in the purple box above the map of Japan. You can download shape files from other Japanese cities and regions as well.
+
+Something important to consider is that you need to know the "city code" of the administrative divisions analysed to be capable of joining any data frame with the data frame of those shape files.
+  
+There is no intention to make this document a deep approach on the matter. It is rather intended to be an exercise data journalism skills as data gathering, charting and mapping with R programming language. All the data frames and plots have been made with RStudio and can be developed with the same software. 
+  
+# Data Analysis
+### Total Number of Buildings Constructed
+Tokyo encompasses the 23 special wards, Western Tokyo (which is composed by 26 cities, 3 towns and 1 village) and 9 islands. It has more than 2 million km² (~840 thousand mi²). In 2016, the capital saw the construction of 48686 buildings at least.
+  
+```{r chart, echo=FALSE, warning=FALSE, message=FALSE}
+library(ggplot2)
+library(dplyr)
+library(viridis)
+library(viridisLite)
+library(forcats)
+library(readxl)
+`2016 Greater Tokyo Construction Clean`= read_excel("C:/Users/caiom/Documents/Tokyo Housing and Construction in 2016/output_data/Tokyo in 10 MI Yens.xlsx")
+ggplot(filter(`2016 Greater Tokyo Construction Clean`, `Total Number`>880, `District`!="All ku", `District`!="All shi", `District`!="Tokyo-to", `District`!="All islands")) + geom_bar(aes(x=fct_reorder(`District`, `Total Number`, desc=TRUE), y=`Total Number`), fill="red", alpha=.6, colour="white", stat="identity") + coord_flip() + labs(title="The 20 divisions with the highest number of \n buildings constructed in 2016", caption="Source: Bureau of Urban Development, TMG (2016)") + xlab("Administrative division") + ylab("Number of constructions") + theme(axis.title.y = element_text(margin = margin(t = 0, r = 14, b = 0, l = 0)), axis.text.x = element_text(margin = margin(t = 0, r = 0, b = 14, l = 0)))
+```
+  
+Setagaya had the highest number of buildings constructed in 2016. There were incredibles 3602. Tokyo's mean that year was approximately 994.
+
+Noted the suffixes? "Ku" means a special ward while "shi" means a city.In the top 20, there are 7 cities. As the list goes tighter to the top 10, only two cities are left. The dominance of the special wards may be better analysed in a choropleth map.
+  
+``` {r plot1, warning=FALSE, echo=FALSE, message=FALSE, results="hide"}
+library(ggplot2)
+library(sf)
+library(dplyr)
+library(viridis)
+library(viridisLite)
+library(readxl)
+library(ggrepel)
+Tokyo = st_read("C:/Users/caiom/Documents/Tokyo Housing and Construction in 2016/raw_data/N03-170101_13_GML/N03-17_13_170101.shp")
+"Tokyo" = filter(`Tokyo`, N03_007 %in% c(13101:13123))
+"Special Wards Construction Data" <- read_excel("C:/Users/caiom/Documents/Tokyo Housing and Construction in 2016/output_data/Tokyo in 10 MI Yens.xlsx")
+"Tokyo Static Map Data"=left_join(`Tokyo`,`Special Wards Construction Data`, by=c("N03_007"="City Code"))
+ggplot(`Tokyo Static Map Data`) + geom_sf(aes(fill=`Total Number`), colour="white") + theme_void() + theme(panel.grid.major = element_line(colour = 'transparent')) + scale_fill_distiller(palette="Reds", direction=1, name="Number of constructions") + labs(title="Construction of buildings in the Special Wards 2016", caption="Source: Bureau of Urban Development, TMG (2016)")
+```
+```{r plot2, warning=FALSE, echo=FALSE, message=FALSE, results="hide"}
+library(ggplot2)
+library(sf)
+library(dplyr)
+library(viridis)
+library(viridisLite)
+library(readxl)
+Tokyo = st_read("C:/Users/caiom/Documents/Tokyo Housing and Construction in 2016/raw_data/N03-170101_13_GML/N03-17_13_170101.shp")
+"Greater Tokyo" = filter(`Tokyo`, N03_007 %in% c(13101:13123)|N03_007 %in% c(13201:13229)|N03_007 %in% c(13303, 13305, 13307, 13308))
+"Greater Tokyo Construction Data Clean" <- read_excel("C:/Users/caiom/Documents/Tokyo Housing and Construction in 2016/output_data/Tokyo in 10 MI Yens.xlsx")
+"Greater Tokyo Static Map Data"=left_join(`Greater Tokyo`,`Greater Tokyo Construction Data Clean`, by=c("N03_007"="City Code"))
+ggplot(`Greater Tokyo Static Map Data`) + geom_sf(aes(fill=`Total Number`), colour="white") + theme_void() + theme(panel.grid.major = element_line(colour = 'transparent')) + scale_fill_distiller(palette="Reds", direction=1, name="Number of constructions") + labs(title="Construction of buildings in the Special Wards and Western Tokyo in 2016", caption="Source: Bureau of Urban Development, TMG (2016)")
+```
+
+It is clear that, apart from the cities of Machida (Machida-shi) and Hachioji (Hachioji-shi), Tokyo's cities tended to have fewer buildings constructed in 2016 than the 23 special wards.
+
+The four divisions without data are Hinohara (Hinohara-mura), Hinode (Hinode-machi), Okutama (Okutama-machi) and Mizuho (Mizuho-machi). The later three are towns and the former is a village. All of them belong to the Nishitama district (Nishitama-gun).
+
+The data used from the Tokyo Metropolitan Government's Tokyo Yearbook of 2016 did not have statistics for each town neither for Hinohara. However it had the overall statistic of the district, which can be compared to Tokyo's other administrative division types.
+
+``` {r plot3, warning=FALSE, echo=FALSE, message=FALSE}
+library(ggplot2)
+library(dplyr)
+library(readxl)
+library(magrittr)
+"2016 Tokyo's Construction Overall" <- read_excel("C:/Users/caiom/Documents/Tokyo Housing and Construction in 2016/output_data/Tokyo in 10 MI Yens.xlsx")
+"2016 Tokyo's Construction Overall"=filter(`2016 Tokyo's Construction Overall`, `District`=="All ku"|`District`=="All shi"|`District`=="All gun"|`District`=="All islands")
+ggplot(`2016 Tokyo's Construction Overall`) + geom_bar(aes(x="", y=`Total Number`, fill=fct_reorder(`District`, `Total Number`, desc=TRUE)), width = 1, alpha=.8, stat = "identity", colour="white") + coord_polar("y", start=0) + scale_fill_brewer(palette="Reds", breaks=c("All ku", "All shi", "All gun", "All islands"), labels=c("Special Wards", "Cities", "Districts","Islands")) +  theme_minimal() + theme(axis.title.x = element_blank(), axis.title.y = element_blank(), panel.border = element_blank(), panel.grid=element_blank(),axis.ticks = element_blank()) + labs(title="All constructions in Tokyo in 2016 by admnistrative division", caption="Source: Bureau of Urban Development, TMG (2016)") + guides(fill=guide_legend(title=NULL))
+```
+
+All the data used in the plots above can be retrieved from the following data table, which is a very simplified version of the Tokyo Metropolitan Government data used in this report.
+
+``` {r frame, warning=FALSE, echo=FALSE, message=FALSE}
+library(DT)
+library(dplyr)
+library(readxl)
+library(magrittr)
+dataframe1 <- read_xlsx("C:/Users/caiom/Documents/Tokyo Housing and Construction in 2016/output_data/Tokyo in 10 MI Yens.xlsx")
+datatable(select(`dataframe1`, `District`, `Total Number`) %>% filter(`District`!="Tokyo-to" & `District`!="All ku" & `District`!="All shi" & `District`!= "All gun" & `District`!="All islands"), extensions = 'Buttons', options = list( dom = 'Bfrtip', buttons = c('copy', 'csv', 'excel', 'pdf', 'print') ) )
+```
+
+### Total Floor Space and Total Estimated Building Cost
+As finished with the variable of Number of Buildings Constructed, two other main variables stand out from the data from the Tokyo Metropolitan Government official website: **Floor Space** and **Estimated Cost of Building**.
+
+```{r plot floor space1, warning=FALSE, echo=FALSE, message=FALSE, results="hide"}
+library(ggplot2)
+library(sf)
+library(dplyr)
+library(viridis)
+library(viridisLite)
+library(readxl)
+Tokyo = st_read("C:/Users/caiom/Documents/Tokyo Housing and Construction in 2016/raw_data/N03-170101_13_GML/N03-17_13_170101.shp")
+"Greater Tokyo" = filter(`Tokyo`, N03_007 %in% c(13101:13123)|N03_007 %in% c(13201:13229)|N03_007 %in% c(13303, 13305, 13307, 13308))
+"Greater Tokyo Construction Data Clean" <- read_excel("C:/Users/caiom/Documents/Tokyo Housing and Construction in 2016/output_data/Tokyo in 10 MI Yens.xlsx")
+"Greater Tokyo Static Map Data"=left_join(`Greater Tokyo`,`Greater Tokyo Construction Data Clean`, by=c("N03_007"="City Code"))
+ggplot(`Greater Tokyo Static Map Data`) + geom_sf(aes(fill=`Total Floor Space`), colour="white") + theme_void() + theme(panel.grid.major = element_line(colour = 'transparent')) + scale_fill_distiller(palette="Blues", direction=1, name="Total floor space in m²") + labs(title="Floor space of buildings constructed in the Special Wards and Western Tokyo in 2016", caption="Source: Bureau of Urban Development, TMG (2016)")
+```
+```{r plot estimated cost1, warning=FALSE, echo=FALSE, message=FALSE, results="hide"}
+library(ggplot2)
+library(sf)
+library(dplyr)
+library(magrittr)
+library(viridis)
+library(viridisLite)
+library(readxl)
+Tokyo = st_read("C:/Users/caiom/Documents/Tokyo Housing and Construction in 2016/raw_data/N03-170101_13_GML/N03-17_13_170101.shp")
+"Greater Tokyo" = filter(`Tokyo`, N03_007 %in% c(13101:13123)|N03_007 %in% c(13201:13229)|N03_007 %in% c(13303, 13305, 13307, 13308))
+"2016 Greater Tokyo Construction Clean in 10 MI Yens" <- read_excel("C:/Users/caiom/Documents/Tokyo Housing and Construction in 2016/output_data/Tokyo in 10 MI Yens.xlsx")
+"Greater Tokyo Static Map Data"=left_join(`Greater Tokyo`,`2016 Greater Tokyo Construction Clean in 10 MI Yens`, by=c("N03_007"="City Code"))
+ggplot(`Greater Tokyo Static Map Data`) + geom_sf(aes(fill=`Total Estimated Construction Cost`), colour="white") + theme_void() + theme(panel.grid.major = element_line(colour = 'transparent')) + scale_fill_distiller(palette="Greens", direction=1, name="Estimated cost in ¥10 MI") + labs(title="Cost of buildings constructed in the Special Wards and Western Tokyo in 2016", caption="Source: Bureau of Urban Development, TMG (2016)")
+```
+
+There is a visible contrast between both maps. While Setagaya-ku and Ota-ku have the highest **Total Floor Space**, Shinjuku-ku and Chiyoda-ku have the highest **Estimated Building Cost**. Though most divisions tended to maintain a certain stability between all three variables, it might be a good opportunity to compare them.
+
+```{r point graph main 3, warning=FALSE, echo=FALSE, message=FALSE}
+library(dplyr)
+library(ggplot2)
+library(xlsx)
+library(viridis)
+library(viridisLite)
+"2016 Greater Tokyo Construction Clean in 10 MI Yens" <- read_excel("C:/Users/caiom/Documents/Tokyo Housing and Construction in 2016/output_data/Tokyo in 10 MI Yens and 1000m².xlsx")
+ggplot(filter(`2016 Greater Tokyo Construction Clean in 10 MI Yens`, `Total Number`>1300)) + geom_point(aes(x=`Total Floor Space`, y=`Total Estimated Construction Cost`, size=`Total Number`, colour=`District`)) + ylab("Estimated building cost in  ¥10 MI") + theme(axis.title.y = element_text(margin = margin(t = 0, r = 14, b = 0, l = 0)), axis.text.x = element_text(margin = margin(t = 0, r = 0, b = 14, l = 0)), legend.box="horizontal") + labs(title="Space and cost in the ten administrative divisions with \n the highest number of buildings constructed in 2016", caption="Source: Bureau of Urban Development,\n TMG (2016)", size="Total number of buildings constructed", colour="Administrative division") + xlab("Total floor space in 1000m²")
+```
+
+### Construction Materials and Others Interrelationships of Variables
+Those three main variables are not only counted for the overall of buildings constructed in Tokyo in 2016, but also grouped by type of material used. Five types were considered: wood, reinforced concrete, steel reinforced concrete, steel-frame and concrete block.
+
+``` {r pie chart materials1, warning=FALSE, echo=FALSE, message=FALSE}
+library(ggplot2)
+library(dplyr)
+library(readxl)
+"2016 Tokyo's Construction Overall Inverted" <- read_excel("C:/Users/caiom/Documents/Tokyo Housing and Construction in 2016/output_data/Tokyo Inverted Frame Grouped by Administrative Division Type.xlsx")
+"2016 Tokyo's Construction Overall Inverted N Material"=filter(`2016 Tokyo's Construction Overall Inverted`, `District` %in% c("W N", "SRC N", "SF N", "CB N", "O N", "RC N"))
+ggplot(select(`2016 Tokyo's Construction Overall Inverted N Material`, `Tokyo-to`, `District`)) + geom_bar(aes(x="", y=`Tokyo-to`, fill=fct_reorder(`District`, `Tokyo-to`, desc=TRUE)), width = 1, alpha=.8, stat = "identity", colour="white") + coord_polar("y", start=0) +  theme_minimal() + theme(axis.title.x = element_blank(), axis.title.y = element_blank(), panel.border = element_blank(), panel.grid=element_blank(),axis.ticks = element_blank()) + labs(title="Materials most used in constructions in Tokyo in 2016", caption="Source: Bureau of Urban Development, TMG (2016)") + guides(fill=guide_legend(title=NULL)) + scale_fill_brewer(palette="Reds", breaks=c("W N", "SF N", "RC N", "O N","SRC N", "CB N"), labels=c("Wood", "Steel-frame", "Reinforced concrete","Other", "Steel reinforced concrete", "Concrete block"))   
+```
+``` {r pie chart materials2, warning=FALSE, echo=FALSE, message=FALSE}
+library(ggplot2)
+library(dplyr)
+library(readxl)
+library(ggrepel)
+options(scipen = 999)
+"2016 Tokyo's Construction Overall Inverted" <- read_excel("C:/Users/caiom/Documents/Tokyo Housing and Construction in 2016/output_data/Tokyo Inverted Frame Grouped by Administrative Division Type.xlsx")
+"2016 Tokyo's Construction Overall Inverted N Material"=filter(`2016 Tokyo's Construction Overall Inverted`, `District` %in% c("W TFS", "SRC TFS", "SF TFS", "CB TFS", "O TFS", "RC TFS"))
+ggplot(select(`2016 Tokyo's Construction Overall Inverted N Material`, `Tokyo-to`, `District`)) + geom_bar(aes(x="", y=`Tokyo-to`, fill=fct_reorder(`District`, `Tokyo-to`, desc=TRUE)), width = 1, alpha=.8, stat = "identity", colour="white") + coord_polar("y", start=0) +  theme_minimal() + theme(axis.title.x = element_blank(), axis.title.y = element_blank(), panel.border = element_blank(), panel.grid=element_blank(),axis.ticks = element_blank()) + labs(title="Highest floor space (in 1000m²) in buildings constructed in Tokyo in 2016 \n by material", caption="Source: Bureau of Urban Development, TMG (2016)") + guides(fill=guide_legend(title=NULL)) + scale_fill_brewer(palette="Blues", breaks=c("SF TFS", "RC TFS","W TFS", "SRC TFS", "O TFS", "CB TFS"), labels=c("Steel-frame", "Reinforced concrete","Wood", "Steel reinforced concrete", "Other", "Concrete block")) 
+```
+
+Though wood was much more used, considering the number of buildings constructed, steel-frame and reinforced concrete seemed to be used for more floor space. That may be explained by the areas where the buildings were constructed. 
+
+```{r material plot1, warning=FALSE, echo=FALSE, message=FALSE, results="hide"}
+library(ggplot2)
+library(sf)
+library(dplyr)
+library(magrittr)
+library(viridis)
+library(viridisLite)
+library(readxl)
+Tokyo = st_read("C:/Users/caiom/Documents/Tokyo Housing and Construction in 2016/raw_data/N03-170101_13_GML/N03-17_13_170101.shp")
+"Greater Tokyo" = filter(`Tokyo`, N03_007 %in% c(13101:13123)|N03_007 %in% c(13201:13229)|N03_007 %in% c(13303, 13305, 13307, 13308))
+"2016 Greater Tokyo Construction Clean in 10 thousand Yens" <- read_excel("C:/Users/caiom/Documents/Tokyo Housing and Construction in 2016/output_data/Tokyo in 10 MI Yens.xlsx")
+"Greater Tokyo Static Map Data"=left_join(`Greater Tokyo`,`2016 Greater Tokyo Construction Clean in 10 thousand Yens`, by=c("N03_007"="City Code"))
+ggplot(`Greater Tokyo Static Map Data`) + geom_sf(aes(fill=`Wooden Number`), colour="white") + theme_void() + theme(panel.grid.major = element_line(colour = 'transparent')) + scale_fill_distiller(palette="Oranges", direction=1, name="Number of constructions") + labs(title="Wooden buildings constructed in the Special Wards and Western Tokyo in 2016", caption="Source: Bureau of Urban Development, TMG (2016)")
+```
+```{r material plot2, warning=FALSE, echo=FALSE, message=FALSE, results="hide"}
+library(ggplot2)
+library(sf)
+library(dplyr)
+library(magrittr)
+library(viridis)
+library(viridisLite)
+library(readxl)
+Tokyo = st_read("C:/Users/caiom/Documents/Tokyo Housing and Construction in 2016/raw_data/N03-170101_13_GML/N03-17_13_170101.shp")
+"Greater Tokyo" = filter(`Tokyo`, N03_007 %in% c(13101:13123)|N03_007 %in% c(13201:13229)|N03_007 %in% c(13303, 13305, 13307, 13308))
+"2016 Greater Tokyo Construction Clean in 10 thousand Yens" <- read_excel("C:/Users/caiom/Documents/Tokyo Housing and Construction in 2016/output_data/Tokyo in 10 MI Yens.xlsx")
+"Greater Tokyo Static Map Data"=left_join(`Greater Tokyo`,`2016 Greater Tokyo Construction Clean in 10 thousand Yens`, by=c("N03_007"="City Code"))
+ggplot(`Greater Tokyo Static Map Data`) + geom_sf(aes(fill=as.numeric(`Steel-frame Number`)), colour="white") + theme_void() + theme(panel.grid.major = element_line(colour = 'transparent')) + scale_fill_distiller(palette="Purples", direction=1, name="Number of constructions") + labs(title="Steel-frame buildings constructed in \n the Special Wards and Western Tokyo in 2016", caption="Source: Bureau of Urban Development, TMG (2016)")
+```
+
+Steel-frame is a bit more concentrated in the special wards (except for Hachioji-shi), while wood showed a bit more of regularity.
+
+## Last Considerations
+Tokyo Metropolitan Government's database has plenty of data about Tokyo from 1957 up to 2016. There are plenty of different statistics about climate, economics, education, health, crime and even about elections.
+If the statistical relationships traced in this document, regardless of staying in the most basic statistics level, could be made with a single data table on I took only the data that was in the section called Construction and Housing, and more specifically the data frame on **Number of Buildings and Total Floor Space by District, Building Type, and Structure**, in the section **Housing and construction**, of 2016, there is definitely a great and welcoming opportunity to analyse Tokyo by statistics. 
+
+## Complete Dataframe from Tokyo's Yearbook of 2016
+**Total Floor Space** is in m² and **Estimated Building Cost** is in ¥10 MI. By default, the data frame **Estimated Building Cost** was in ¥10 thousand. In a hurry, I divided in R the values by a thousand so they would fit in the plots' legends and in the following data frame. So, the values were not rounded properly.  
+
+``` {r frame finale, warning=FALSE, echo=FALSE, message=FALSE}
+library(DT)
+library(dplyr)
+library(readxl)
+dataframe1 <- read_xlsx("C:/Users/caiom/Documents/Tokyo Housing and Construction in 2016/output_data/Tokyo in 10 MI Yens.xlsx")
+datatable(select(`dataframe1`,  `District`:`Others Estimated BUilding Cost`), extensions = 'Buttons', options = list( dom = 'Bfrtip', buttons = c('copy', 'csv', 'excel', 'pdf', 'print') ) )
+```
+
+## Greetings
+This html document is related to the University of Texas at Austin's Knight Center's "Intro to R for Journalists: How to Find Great Stories in Data". It was a massive open online course lectured by The Washington Post's journalist Andrew Ba Tran from July to late August 2018.
+The 5 week class is what made this (though simple) document possible, but most importantly presented me the basics of data journalism and sparked in me an interest in this area. Developing these skills shall present necessary in order to achieve deep statistical perspective of the facts to enrich journalistic reporting.
+
+## Author
+
+### Name
+Caio Mattos Moreira Cardoso
+
+### Occupation
+Student of Journalism at the University of São Paulo, Brazil
+
+### Email
+caiomattcardoso@usp.br
+
+
+
+

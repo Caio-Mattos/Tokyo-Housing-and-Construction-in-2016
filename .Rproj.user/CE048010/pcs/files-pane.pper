@@ -1,0 +1,9 @@
+{
+    "path" : "~/Tokyo Housing and Construction in 2016/output_data",
+    "sortOrder" : [
+        {
+            "ascending" : true,
+            "columnIndex" : 2
+        }
+    ]
+}

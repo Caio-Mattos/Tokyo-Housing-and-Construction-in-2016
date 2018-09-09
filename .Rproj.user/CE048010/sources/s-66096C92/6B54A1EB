@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1536416602648.000,
+    "dirty" : false,
+    "encoding" : "ISO8859-1",
+    "folds" : "",
+    "hash" : "587306207",
+    "id" : "6B54A1EB",
+    "lastKnownWriteTime" : 1536455792,
+    "last_content_update" : 1536455792684,
+    "path" : "~/Tokyo Housing and Construction in 2016/rmd/TEST.Rmd",
+    "project_path" : "rmd/TEST.Rmd",
+    "properties" : {
+        "cursorPosition" : "125,56",
+        "scrollLine" : "121"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}
